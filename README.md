@@ -31,7 +31,6 @@ VIDEO
 ├── index.html
 └── style.css
 
-
 ## Mantenedores
 
 Lista de mantenedores actuales del proyecto AminoFold3D.
