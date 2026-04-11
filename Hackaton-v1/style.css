@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   BIOHACK — Design System
+   AMINOFOLD3D — Design System
    ═══════════════════════════════════════════════════ */
 :root {
     /* Background */
@@ -92,6 +92,22 @@ body {
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
+}
+.logo-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    border-radius: var(--r-sm);
+    padding: 0.2rem 0.4rem;
+    margin: -0.2rem -0.4rem;
+}
+.logo-link:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+}
+.logo-link:active {
+    transform: scale(0.98);
 }
 .logo h1 {
     font-size: 1.9rem;
@@ -296,6 +312,68 @@ body {
     color: var(--txt-muted);
     font-weight: 600;
     margin-right: 0.25rem;
+}
+
+/* Compare toggle + panel */
+.compare-toggle-btn {
+    width: 100%;
+    justify-content: flex-start;
+    margin-bottom: 0.9rem;
+    border-color: rgba(0,240,255,0.22);
+    color: var(--primary);
+    background: linear-gradient(135deg, rgba(0,240,255,0.06), rgba(112,0,255,0.08));
+}
+.compare-toggle-btn:hover,
+.compare-toggle-btn.active {
+    border-color: rgba(0,240,255,0.45);
+    color: #fff;
+    background: linear-gradient(135deg, rgba(0,240,255,0.14), rgba(112,0,255,0.2));
+}
+
+.compare-config-panel {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: max-height 0.45s ease, opacity 0.3s ease, transform 0.35s ease, margin-bottom 0.35s ease;
+    margin-bottom: 0;
+}
+.compare-config-panel.is-open {
+    max-height: 1400px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    margin-bottom: 1rem;
+}
+.compare-config-inner {
+    border: 1px solid rgba(0,240,255,0.14);
+    border-radius: var(--r-md);
+    background: linear-gradient(180deg, rgba(14,19,38,0.82), rgba(8,12,28,0.92));
+    padding: 1.15rem 1.15rem 1rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 40px rgba(0,0,0,0.22);
+}
+.compare-config-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.compare-config-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0.15rem;
+}
+.compare-config-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--primary);
+    font-weight: 700;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -503,6 +581,10 @@ body {
     white-space: nowrap;
     flex-shrink: 0;
 }
+.protein-badge.is-comparison {
+    background: linear-gradient(135deg, #ff7d45, #00d4ff);
+    color: #08101f;
+}
 .top-stats {
     display: flex;
     gap: 1.5rem;
@@ -532,6 +614,11 @@ body {
     flex-wrap: wrap;
     margin-left: auto;
 }
+.top-actions-group {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
 
 /* Results Grid */
 .results-grid {
@@ -543,6 +630,15 @@ body {
 }
 @media (max-width: 960px) {
     .results-grid { grid-template-columns: 1fr; }
+    .comparison-viewers-grid,
+    .comparison-analysis-grid,
+    .comparison-overview,
+    .comparison-delta-grid {
+        grid-template-columns: 1fr;
+    }
+    .viewer-card {
+        position: static;
+    }
 }
 
 /* 3D Viewer card */
@@ -829,6 +925,145 @@ body {
     line-height: 1.6;
 }
 
+/* Comparison results */
+.comparison-results-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.comparison-viewers-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+.comparison-protein-card {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.comparison-protein-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.comparison-protein-kicker {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--txt-dim);
+    font-weight: 700;
+    margin-bottom: 0.28rem;
+}
+.comparison-protein-header h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+.comparison-score {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0,240,255,0.14);
+    background: rgba(0,0,0,0.3);
+    color: var(--primary);
+}
+.compare-viewer-container {
+    height: 360px;
+}
+.compare-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.compare-summary-copy {
+    font-size: 0.88rem;
+    color: var(--txt-muted);
+    line-height: 1.65;
+}
+.compare-summary-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.compare-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.34rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--txt);
+    font-size: 0.74rem;
+    font-family: var(--font-mono);
+}
+.comparison-analysis-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+}
+.comparison-overview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+.comparison-overview-item,
+.comparison-delta-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 0.9rem 1rem;
+}
+.comparison-overview-label,
+.comparison-delta-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--txt-dim);
+    margin-bottom: 0.35rem;
+}
+.comparison-overview-text {
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--txt);
+}
+.comparison-delta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+.comparison-delta-values {
+    display: grid;
+    gap: 0.28rem;
+}
+.comparison-delta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+}
+.comparison-delta-name {
+    color: var(--txt-muted);
+}
+.comparison-delta-value {
+    font-family: var(--font-mono);
+    color: var(--txt);
+    font-weight: 700;
+}
+.comparison-delta-foot {
+    margin-top: 0.55rem;
+    font-size: 0.76rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
 /* ── Utilities ──────────────────────────────────── */
 .hidden { display: none !important; }
 .ok     { color: #6ee7b7; }
@@ -954,6 +1189,282 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════
+   JOB QUEUE — Cola de Procesos
+   ═══════════════════════════════════════════════════ */
+.job-queue-section {
+    max-width: 780px;
+    margin: 1.5rem auto 0;
+    animation: viewIn 0.4s ease;
+}
+.job-queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding: 0 0.25rem;
+}
+.job-queue-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary);
+}
+.job-queue-count {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--txt-muted);
+}
+.job-queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Job Card */
+.job-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: viewIn 0.35s ease;
+}
+.job-card:hover {
+    border-color: var(--border-hov);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+}
+.job-card--pending  { border-left: 3px solid var(--primary); }
+.job-card--running  { border-left: 3px solid var(--secondary); }
+.job-card--ready,
+.job-card--completed { border-left: 3px solid #6ee7b7; }
+.job-card--failed   { border-left: 3px solid var(--accent); }
+
+.job-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    gap: 1rem;
+}
+.job-card-info {
+    flex: 1;
+    min-width: 0;
+}
+.job-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--txt);
+    text-transform: capitalize;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.job-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.3rem;
+    flex-wrap: wrap;
+}
+.job-card-elapsed {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--txt-dim);
+}
+.job-card-id {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    color: var(--txt-dim);
+    opacity: 0.6;
+}
+.job-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Status Badges */
+.job-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.job-status--pending {
+    background: rgba(0,240,255,0.12);
+    color: var(--primary);
+    animation: statusPulse 2s infinite;
+}
+.job-status--running {
+    background: rgba(112,0,255,0.2);
+    color: #b388ff;
+    animation: statusPulse 1.5s infinite;
+}
+.job-status--ready,
+.job-status--completed {
+    background: rgba(110,231,183,0.15);
+    color: #6ee7b7;
+}
+.job-status--compare {
+    background: rgba(255,125,69,0.12);
+    color: #ffb088;
+    border: 1px solid rgba(255,125,69,0.18);
+}
+.job-status--failed {
+    background: rgba(255,0,123,0.12);
+    color: var(--accent);
+}
+@keyframes statusPulse {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.6; }
+}
+
+/* View Results button */
+.job-view-btn {
+    border-color: rgba(110,231,183,0.3) !important;
+    color: #6ee7b7 !important;
+}
+.job-view-btn:hover {
+    background: rgba(110,231,183,0.1) !important;
+    border-color: #6ee7b7 !important;
+    transform: translateY(-1px);
+}
+
+/* Remove button */
+.job-remove-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--txt-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.job-remove-btn:hover {
+    background: rgba(255,0,123,0.1);
+    border-color: rgba(255,0,123,0.3);
+    color: var(--accent);
+}
+
+/* Job Card Preview area */
+.job-card-preview {
+    padding: 0 1.25rem 1rem;
+}
+
+/* Mini spinner for active jobs */
+.job-mini-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60px;
+    margin-bottom: 0.5rem;
+}
+.spinner-inner.mini {
+    width: 44px;
+    height: 44px;
+}
+.spinner-inner.mini .spinner-circle {
+    font-size: 12px;
+}
+
+/* Mini progress bar */
+.job-progress-bar-container {
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+.job-progress-bar {
+    width: 35%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 2px;
+    animation: indeterminate 2s infinite ease-in-out;
+}
+
+.job-status-text {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--txt-muted);
+    text-align: center;
+}
+
+/* Ready state preview */
+.job-ready-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    background: rgba(110,231,183,0.05);
+    border: 1px solid rgba(110,231,183,0.15);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.job-ready-preview:hover {
+    background: rgba(110,231,183,0.1);
+    border-color: rgba(110,231,183,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(110,231,183,0.15);
+}
+.job-ready-icon {
+    color: #6ee7b7;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    animation: readyPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes readyPop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+.job-ready-label {
+    font-size: 0.82rem;
+    color: #6ee7b7;
+    font-weight: 600;
+}
+.job-compare-summary {
+    display: grid;
+    gap: 0.22rem;
+    margin-top: 0.45rem;
+    font-size: 0.74rem;
+    color: var(--txt-dim);
+}
+
+/* Failed state preview */
+.job-failed-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255,0,123,0.06);
+    border: 1px solid rgba(255,0,123,0.15);
+    border-radius: var(--r-sm);
+    font-size: 0.78rem;
+    color: #ffa0c0;
+}
+
+/* ═══════════════════════════════════════════════════
    FASTA PREVIEW CARD
    ═══════════════════════════════════════════════════ */
 .fasta-preview-card {
@@ -1020,7 +1531,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════
-   CHATBOT — BioHack AI Assistant
+   CHATBOT — AminoFold3D AI Assistant
    ═══════════════════════════════════════════════════ */
 
 /* ── Floating Action Button ─────────────────────── */
@@ -1352,6 +1863,19 @@ body {
 
 /* ── Responsive mobile ──────────────────────────── */
 @media (max-width: 480px) {
+    .compare-config-header {
+        flex-direction: column;
+    }
+    .comparison-viewers-grid,
+    .comparison-analysis-grid,
+    .comparison-overview,
+    .comparison-delta-grid,
+    .bio-grid {
+        grid-template-columns: 1fr;
+    }
+    .compare-viewer-container {
+        height: 300px;
+    }
     .chat-panel {
         bottom: 0;
         right: 0;
