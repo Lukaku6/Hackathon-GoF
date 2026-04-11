@@ -49,6 +49,7 @@ const singleResultsLayout = document.getElementById('single-results-layout');
 const comparisonResultsLayout = document.getElementById('comparison-results-layout');
 const singleDownloadActions = document.getElementById('single-download-actions');
 const btnDownloadCompareReport = document.getElementById('btn-download-compare-report');
+const landingSplash = document.getElementById('landing-splash');
 
 const proteinForms = {
     primary: {
@@ -79,6 +80,7 @@ const autocompleteState = {
 };
 
 let comparisonPanelOpen = false;
+let revealObserver = null;
 
 function getProteinForm(slot = 'primary') {
     return proteinForms[slot] ?? proteinForms.primary;
@@ -159,6 +161,7 @@ function createMemberJob(jobId, name, slot) {
 function showView(viewId) {
     Object.values(views).forEach(v => v.classList.remove('active'));
     views[viewId].classList.add('active');
+    requestAnimationFrame(initScrollReveal);
 }
 
 /** Navegar al inicio desde cualquier vista */
@@ -815,6 +818,7 @@ function renderJobQueue() {
     }
 
     section.classList.remove('hidden');
+    requestAnimationFrame(initScrollReveal);
     const active = jobQueue.filter(j => j.status === 'PENDING' || j.status === 'RUNNING').length;
     const done = jobQueue.filter(j => j.status === 'READY' || j.status === 'COMPLETED').length;
     countEl.textContent = `${jobQueue.length} trabajo${jobQueue.length !== 1 ? 's' : ''} · ${active} activo${active !== 1 ? 's' : ''} · ${done} listo${done !== 1 ? 's' : ''}`;
@@ -931,6 +935,46 @@ function formatElapsed(ms) {
     const mins = Math.floor(secs / 60);
     const rest = secs % 60;
     return `${mins}m ${rest}s`;
+}
+
+function updateSplashState() {
+    if (!landingSplash) return;
+    const revealThreshold = Math.min(window.innerHeight * 0.18, 120);
+    const splashVisible = landingSplash.getBoundingClientRect().bottom > revealThreshold;
+    document.body.classList.toggle('splash-active', splashVisible);
+}
+
+function initScrollReveal() {
+    const revealEls = document.querySelectorAll('.scroll-reveal');
+    if (!revealEls.length) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+        revealEls.forEach(el => el.classList.add('is-visible'));
+        return;
+    }
+
+    if (!revealObserver) {
+        revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-visible');
+                revealObserver.unobserve(entry.target);
+            });
+        }, {
+            threshold: 0.18,
+            rootMargin: '0px 0px -10% 0px',
+        });
+    }
+
+    revealEls.forEach((el) => {
+        if (el.classList.contains('is-visible')) return;
+        if (el.dataset.revealDelay) {
+            el.style.setProperty('--reveal-delay', `${el.dataset.revealDelay}ms`);
+        }
+        revealObserver.unobserve(el);
+        revealObserver.observe(el);
+    });
 }
 
 function escapeHtml(str) {
@@ -1847,8 +1891,8 @@ function formatShortNumber(val) {
    12. CHATBOT — Asistente IA con Gemini
    ════════════════════════════════════════════════ */
 
-const GEMINI_API_KEY = 'AIzaSyBk3kgRRGZCigiEUb6bAAJOLyizKOv4UWc';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_KEY = 'AIzaSyCZpkwbOSsord-ouYJLBoQDt8lhQQcd09s';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // ── Estado del chat ──────────────────────────────
 let chatHistory = [];   // array de {role, parts:[{text}]}
@@ -1993,7 +2037,7 @@ async function callGemini(userMessage) {
         contents: chatHistory,
         generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 8096,
             topP: 0.95,
         },
         safetySettings: [
@@ -2170,3 +2214,18 @@ function autoresizeChat(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
+
+function initExperience() {
+    window.addEventListener('scroll', updateSplashState, { passive: true });
+    window.addEventListener('resize', updateSplashState);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.body.classList.remove('app-booting');
+            initScrollReveal();
+            updateSplashState();
+        });
+    });
+}
+
+initExperience();

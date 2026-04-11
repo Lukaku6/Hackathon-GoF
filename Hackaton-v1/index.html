@@ -23,9 +23,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body class="app-booting">
     <div id="bg-glow-1" class="glow"></div>
     <div id="bg-glow-2" class="glow"></div>
+
+    <section id="landing-splash" class="landing-splash" aria-label="Portada de Hackaton 2026">
+        <div class="landing-splash-inner">
+            <h1>Hackaton 2026</h1>
+        </div>
+    </section>
 
     <header class="glass-header">
         <div class="header-inner">
@@ -98,15 +104,15 @@
     <main class="container">
 
         <!-- ═══════════════════════════════════════ -->
-        <!-- Vista 1: Entrada (IDLE)                -->
+        <!-- Vista 1: Entrada (IDLE)                 -->
         <!-- ═══════════════════════════════════════ -->
         <section id="view-idle" class="view active" aria-label="Entrada de secuencia FASTA">
-            <div class="glass-card hero-card">
+            <div class="glass-card hero-card scroll-reveal" data-reveal-delay="120">
                 <div class="hero-badge">
                     <span class="dot pulse-dot"></span>
                     API CESGA activa
                 </div>
-                <h2>Predice la estructura de tu proteína</h2>
+                <h2>Predice la estructura tridimensional de tu proteína</h2>
                 <p class="hero-sub">Busca por nombre para cargar el FASTA automáticamente, o pégalo directamente.
                     AlphaFold2 predecirá la estructura 3D en CESGA.</p>
 
@@ -194,7 +200,7 @@
                         <path d="M8 12h8" />
                         <path d="M12 8v8" />
                     </svg>
-                    <span id="compare-toggle-label">Comparar con otra proteina</span>
+                    <span id="compare-toggle-label">Comparar con otra proteína</span>
                 </button>
 
                 <div id="comparison-config-panel" class="compare-config-panel" aria-hidden="true">
@@ -304,7 +310,7 @@
             </div>
 
             <!-- ── Cola de Trabajos ── -->
-            <div id="job-queue-section" class="job-queue-section hidden">
+            <div id="job-queue-section" class="job-queue-section hidden scroll-reveal" data-reveal-delay="180">
                 <div class="job-queue-header">
                     <h3 class="job-queue-title">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -571,6 +577,34 @@
         </section>
 
     </main>
+
+    <footer class="site-footer scroll-reveal" data-reveal-delay="120" aria-label="Branding y colaboradores">
+        <div class="site-footer-inner">
+            <div class="site-footer-copy">
+                <span class="site-footer-kicker">Cierre de proyecto</span>
+                <h2>AminoFold3D</h2>
+                <p>IA, supercomputación y visualización 3D puestas al servicio del investigador.</p>
+            </div>
+
+            <div class="site-footer-brand-grid">
+                <figure class="site-footer-brand-card site-footer-brand-card--wide">
+                    <img src="assets/branding/camelia.png" alt="Logo de Camelia">
+                </figure>
+
+                <figure class="site-footer-brand-card site-footer-brand-card--wide">
+                    <img src="assets/branding/aminofold-brand.png" alt="Branding de AminoFold3D">
+                </figure>
+
+                <figure class="site-footer-brand-card">
+                    <img src="assets/branding/cesga.png" alt="Logo del CESGA">
+                </figure>
+
+                <figure class="site-footer-brand-card">
+                    <img src="assets/branding/cimus.png" alt="Logo del CIMUS">
+                </figure>
+            </div>
+        </div>
+    </footer>
 
     <!-- ═══════════════════════════════════════ -->
     <!-- CHATBOT — Asistente IA AminoFold3D    -->
