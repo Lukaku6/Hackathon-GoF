@@ -235,18 +235,12 @@
                         <span class="top-stat-label">PAE medio</span>
                         <span class="top-stat-val" id="res-pae-top">— Å</span>
                     </div>
-                    <div class="top-stat">
-                        <span class="top-stat-label">Residuos</span>
-                        <span class="top-stat-val" id="res-length-top">—</span>
-                    </div>
-                    <div class="top-stat">
-                        <span class="top-stat-label">Peso Mol.</span>
-                        <span class="top-stat-val" id="res-mw-top">— kDa</span>
-                    </div>
                 </div>
                 <div class="top-actions">
                     <button id="btn-download-pdb" class="glass-btn small" onclick="downloadFile('pdb')">⬇ PDB</button>
                     <button id="btn-download-cif" class="glass-btn small" onclick="downloadFile('cif')">⬇ mmCIF</button>
+                    <button id="btn-download-confidence" class="glass-btn small" onclick="downloadConfidenceJson()">⬇ JSON confianza</button>
+                    <button id="btn-download-logs" class="glass-btn small" onclick="downloadLogs()">⬇ Logs</button>
                     <button id="btn-new-pred" class="glass-btn small secondary" onclick="resetApp()">+ Nueva
                         predicción</button>
                 </div>
@@ -299,6 +293,12 @@
                         </div>
                     </div>
 
+                    <!-- JSON de confianza -->
+                    <div class="glass-card metric-card">
+                        <h3 class="metric-title">JSON de confianza</h3>
+                        <pre id="confidence-json" class="result-logs-pre">—</pre>
+                    </div>
+
                     <!-- Matriz PAE -->
                     <div class="glass-card metric-card">
                         <h3 class="metric-title">Matriz PAE</h3>
@@ -313,23 +313,10 @@
                         </div>
                     </div>
 
-                    <!-- Estructura secundaria -->
+                    <!-- Avisos de confianza -->
                     <div class="glass-card metric-card">
-                        <h3 class="metric-title">Estructura Secundaria (predicha)</h3>
-                        <div class="ss-bars" id="ss-bars"></div>
-                    </div>
-
-                    <!-- Biología + Propiedades -->
-                    <div class="glass-card metric-card">
-                        <h3 class="metric-title">Análisis Biológico</h3>
-                        <div class="bio-grid" id="bio-grid"></div>
+                        <h3 class="metric-title">Avisos de confianza</h3>
                         <div id="alerts-section"></div>
-                    </div>
-
-                    <!-- HPC Accounting -->
-                    <div class="glass-card metric-card">
-                        <h3 class="metric-title">Recursos HPC (CESGA)</h3>
-                        <div class="hpc-stats" id="hpc-stats"></div>
                     </div>
 
                 </div>
