@@ -24,4 +24,21 @@ VIDEO
 ## Arquitectura
 <img width="475" height="720" alt="imagen" src="https://github.com/user-attachments/assets/527449bb-dfb9-4161-9473-82b231cc4bcc" />
 
+## Estructura del proyecto
 
+.
+├── app.js
+├── index.html
+└── style.css
+
+
+## Mantenedores
+
+Lista de mantenedores actuales del proyecto AminoFold3D.
+
+| Nombre                     | Correo                             | Rol        |
+|----------------------------|------------------------------------|------------|
+| Lucas Freire Gargamala     | lucas.freire.gargamala@rai.usc.es  | Maintainer |
+| Marcos González Taracido   | marcos.gonzalez.taracido@rai.usc.es| Maintainer |
+| Mateo Díaz Pérez           | mateo.diaz.perez@rai.usc.es        | Maintainer |
+| Imanol Domínguez Neira     | imanol.dominguez@rai.usc.es        | Maintainer |
