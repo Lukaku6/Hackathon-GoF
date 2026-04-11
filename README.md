@@ -26,11 +26,9 @@ VIDEO
 
 ## Estructura del proyecto
 
-.
+.  
 ├── app.js  
-
 ├── index.html  
-
 └── style.css  
 
 
