@@ -882,8 +882,8 @@ function renderJobQueue() {
                         <div class="job-progress-bar"></div>
                     </div>
                     <div class="job-status-text">${job.isComparison
-                ? 'Comparando ambas proteínas en paralelo...'
-                : job.status === 'PENDING' ? 'Esperando recursos GPU...' : 'Generando MSA e inferencia neuronal...'}</div>
+                    ? 'Comparando ambas proteínas en paralelo...'
+                    : job.status === 'PENDING' ? 'Esperando recursos GPU...' : 'Generando MSA e inferencia neuronal...'}</div>
                     ${job.isComparison ? `
                         <div class="job-compare-summary">
                             ${job.members.map(member => `<div>${escapeHtml(member.name)}: ${memberStatusLabel(member.status)}</div>`).join('')}
@@ -898,8 +898,8 @@ function renderJobQueue() {
                             </svg>
                         </div>
                         <div class="job-ready-label">${job.isComparison
-                ? 'Comparativa completada — clic para abrir el análisis dual'
-                : 'Predicción completada — clic para ver estadísticas'}</div>
+                    ? 'Comparativa completada — clic para abrir el análisis dual'
+                    : 'Predicción completada — clic para ver estadísticas'}</div>
                     </div>
                 ` : isFailed ? `
                     <div class="job-failed-preview">

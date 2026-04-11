@@ -1166,9 +1166,10 @@ body.app-booting .chat-fab {
     letter-spacing: 0.6px;
     margin-bottom: 0.5rem;
 }
-
-.name-group { margin-bottom: 1.25rem; }
-
+.name-group { 
+    margin-bottom: 1.25rem; 
+    z-index: 100;
+}
 /* Input + button wrapper */
 .protein-name-wrapper {
     position: relative;
