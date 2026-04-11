@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AminoFold3D | AlphaFold Protein Structure Predictor</title>
+    <meta name="description"
+        content="AminoFold3D — Predictor de estructuras proteicas powered by AlphaFold2 y CESGA HPC. Visualización 3D con Mol*, análisis de confianza pLDDT y matriz PAE.">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Mol* (PDBe-Molstar plugin) — dark theme -->
+    <link rel="stylesheet" type="text/css"
+        href="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.1/build/pdbe-molstar.css">
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.1/build/pdbe-molstar-plugin.js"></script>
+
+    <!-- App styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="app-booting">
+    <div id="bg-glow-1" class="glow"></div>
+    <div id="bg-glow-2" class="glow"></div>
+
+    <section id="landing-splash" class="landing-splash" aria-label="Portada de Hackaton 2026">
+        <div class="landing-splash-inner">
+            <h1>Hackaton 2026</h1>
+        </div>
+    </section>
+
+    <header class="glass-header">
+        <div class="header-inner">
+            <a href="#" class="logo logo-link" id="logo-home-link" onclick="goHome(); return false;"
+                title="Ir al inicio">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true" class="dna-logo">
+                    <defs>
+                        <linearGradient id="dna-g1" x1="0" y1="0" x2="36" y2="36">
+                            <stop offset="0%" stop-color="var(--primary)" />
+                            <stop offset="100%" stop-color="var(--secondary)" />
+                        </linearGradient>
+                        <linearGradient id="dna-g2" x1="36" y1="0" x2="0" y2="36">
+                            <stop offset="0%" stop-color="var(--secondary)" />
+                            <stop offset="100%" stop-color="var(--primary)" />
+                        </linearGradient>
+                        <linearGradient id="dna-g3" x1="0" y1="0" x2="36" y2="0">
+                            <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.6" />
+                            <stop offset="50%" stop-color="var(--accent)" stop-opacity="0.9" />
+                            <stop offset="100%" stop-color="var(--secondary)" stop-opacity="0.6" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Strand 1 (left helix) -->
+                    <path d="M10 3 C6 8, 6 12, 18 15 C30 18, 30 22, 26 28 C24 31, 22 33, 20 34" stroke="url(#dna-g1)"
+                        stroke-width="2.5" fill="none" stroke-linecap="round" />
+                    <!-- Strand 2 (right helix) -->
+                    <path d="M26 3 C30 8, 30 12, 18 15 C6 18, 6 22, 10 28 C12 31, 14 33, 16 34" stroke="url(#dna-g2)"
+                        stroke-width="2.5" fill="none" stroke-linecap="round" />
+                    <!-- Base pairs (rungs) -->
+                    <line x1="11" y1="7" x2="25" y2="7" stroke="url(#dna-g3)" stroke-width="1.5" stroke-linecap="round"
+                        opacity="0.7" />
+                    <line x1="8" y1="11" x2="28" y2="11" stroke="url(#dna-g3)" stroke-width="1.5" stroke-linecap="round"
+                        opacity="0.55" />
+                    <line x1="13" y1="15" x2="23" y2="15" stroke="url(#dna-g3)" stroke-width="1.5"
+                        stroke-linecap="round" opacity="0.8" />
+                    <line x1="8" y1="19" x2="28" y2="19" stroke="url(#dna-g3)" stroke-width="1.5" stroke-linecap="round"
+                        opacity="0.45" />
+                    <line x1="10" y1="23" x2="26" y2="23" stroke="url(#dna-g3)" stroke-width="1.5"
+                        stroke-linecap="round" opacity="0.65" />
+                    <line x1="12" y1="27" x2="24" y2="27" stroke="url(#dna-g3)" stroke-width="1.5"
+                        stroke-linecap="round" opacity="0.8" />
+                    <line x1="14" y1="31" x2="22" y2="31" stroke="url(#dna-g3)" stroke-width="1.5"
+                        stroke-linecap="round" opacity="0.5" />
+                    <!-- Glow nucleotides -->
+                    <circle cx="11" cy="7" r="1.8" fill="var(--primary)" opacity="0.9">
+                        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="25" cy="7" r="1.8" fill="var(--secondary)" opacity="0.9">
+                        <animate attributeName="opacity" values="0.5;0.9;0.5" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="13" cy="15" r="1.8" fill="var(--accent)" opacity="0.85">
+                        <animate attributeName="opacity" values="0.85;0.35;0.85" dur="3s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="23" cy="15" r="1.8" fill="var(--primary)" opacity="0.85">
+                        <animate attributeName="opacity" values="0.4;0.85;0.4" dur="3s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="12" cy="27" r="1.8" fill="var(--secondary)" opacity="0.8">
+                        <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2.8s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="24" cy="27" r="1.8" fill="var(--primary)" opacity="0.8">
+                        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.8s" repeatCount="indefinite" />
+                    </circle>
+                </svg>
+                <h1><span class="gradient-text">Amino</span>Fold3D</h1>
+            </a>
+            <p class="tagline">Predicción de estructura proteica · AlphaFold2 @ CESGA</p>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Vista 1: Entrada (IDLE)                 -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="view-idle" class="view active" aria-label="Entrada de secuencia FASTA">
+            <div class="glass-card hero-card scroll-reveal" data-reveal-delay="120">
+                <div class="hero-badge">
+                    <span class="dot pulse-dot"></span>
+                    API CESGA activa
+                </div>
+                <h2>Predice la estructura tridimensional de tu proteína</h2>
+                <p class="hero-sub">Busca por nombre para cargar el FASTA automáticamente, o pégalo directamente.
+                    AlphaFold2 predecirá la estructura 3D en CESGA.</p>
+
+                <!-- ── Nombre de la proteína con búsqueda ── -->
+                <div class="input-group name-group">
+                    <label class="field-label" for="protein-name-input">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="M21 21l-4.35-4.35" />
+                        </svg>
+                        Nombre de la proteína
+                    </label>
+                    <div class="protein-name-wrapper">
+                        <input id="protein-name-input" class="glass-input name-input" type="text"
+                            placeholder="Escribe el nombre (ej: ubiquitin, p53, GFP...)" autocomplete="off"
+                            oninput="onProteinNameInput(this.value)" onkeydown="onNameKeyDown(event)">
+                        <button id="btn-search-protein" class="glass-btn small search-btn"
+                            onclick="searchProteinByName()" title="Buscar y cargar FASTA">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8" />
+                                <path d="M21 21l-4.35-4.35" />
+                            </svg>
+                            Buscar
+                        </button>
+                        <div id="name-autocomplete" class="name-autocomplete hidden" role="listbox"
+                            aria-label="Sugerencias de proteínas"></div>
+                    </div>
+                    <div class="input-hint">Busca en la API CESGA — el FASTA se cargará automáticamente</div>
+                </div>
+
+                <!-- ── Secuencia FASTA ── -->
+                <div class="input-group">
+                    <label class="field-label" for="fasta-input">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        Secuencia FASTA
+                    </label>
+                    <textarea id="fasta-input" class="glass-input" rows="7"
+                        placeholder="&gt;nombre_proteina&#10;MKLVNSSEGKTI..." oninput="onFastaInput()"></textarea>
+                    <div class="input-hint">El identificador FASTA debe comenzar con <code>&gt;</code> — el nombre se
+                        sincroniza automáticamente</div>
+                </div>
+
+                <!-- ── Previsualización FASTA ── -->
+                <div id="fasta-preview-card" class="fasta-preview-card hidden" aria-live="polite">
+                    <div class="fasta-preview-header">
+                        <span class="fasta-preview-title">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="vertical-align:-2px" aria-hidden="true">
+                                <polyline points="9 11 12 14 22 4" />
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                            </svg>
+                            Previsualización FASTA
+                        </span>
+                        <div class="fasta-preview-actions">
+                            <span id="fasta-preview-stats" class="fasta-stats"></span>
+                            <button id="btn-download-fasta" class="glass-btn small accent-btn" onclick="downloadFasta()"
+                                title="Descargar archivo .fasta">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                .fasta
+                            </button>
+                        </div>
+                    </div>
+                    <pre id="fasta-preview-content" class="fasta-preview-pre"></pre>
+                </div>
+
+                <button id="btn-toggle-compare" class="glass-btn small compare-toggle-btn" type="button"
+                    onclick="toggleComparisonSection()" aria-expanded="false" aria-controls="comparison-config-panel">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        aria-hidden="true">
+                        <path d="M9 3H5a2 2 0 0 0-2 2v4" />
+                        <path d="M15 21h4a2 2 0 0 0 2-2v-4" />
+                        <path d="M21 9V5a2 2 0 0 0-2-2h-4" />
+                        <path d="M3 15v4a2 2 0 0 0 2 2h4" />
+                        <path d="M8 12h8" />
+                        <path d="M12 8v8" />
+                    </svg>
+                    <span id="compare-toggle-label">Comparar con otra proteína</span>
+                </button>
+
+                <div id="comparison-config-panel" class="compare-config-panel" aria-hidden="true">
+                    <div class="compare-config-inner">
+                        <div class="compare-config-header">
+                            <div>
+                                <span class="compare-config-kicker">Modo comparativo</span>
+                                <h3>Segunda proteína</h3>
+                            </div>
+                            <button class="glass-btn small secondary" type="button"
+                                onclick="closeComparisonSection()">Ocultar</button>
+                        </div>
+
+                        <div class="input-group name-group">
+                            <label class="field-label" for="compare-protein-name-input">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="M21 21l-4.35-4.35" />
+                                </svg>
+                                Nombre de la proteína 2
+                            </label>
+                            <div class="protein-name-wrapper">
+                                <input id="compare-protein-name-input" class="glass-input name-input" type="text"
+                                    placeholder="Escribe el nombre de la proteína a comparar" autocomplete="off"
+                                    oninput="onCompareProteinNameInput(this.value)"
+                                    onkeydown="onCompareNameKeyDown(event)">
+                                <button id="btn-search-compare-protein" class="glass-btn small search-btn" type="button"
+                                    onclick="searchCompareProteinByName()" title="Buscar y cargar FASTA">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" aria-hidden="true">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <path d="M21 21l-4.35-4.35" />
+                                    </svg>
+                                    Buscar
+                                </button>
+                                <div id="compare-name-autocomplete" class="name-autocomplete hidden" role="listbox"
+                                    aria-label="Sugerencias de proteínas para comparar"></div>
+                            </div>
+                            <div class="input-hint">Busca una segunda proteína en la API o introduce su FASTA
+                                manualmente</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="field-label" for="compare-fasta-input">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                Secuencia FASTA de la proteína 2
+                            </label>
+                            <textarea id="compare-fasta-input" class="glass-input" rows="7"
+                                placeholder="&gt;proteina_2&#10;MKLVNSSEGKTI..."
+                                oninput="onCompareFastaInput()"></textarea>
+                            <div class="input-hint">La comparativa se lanzará como una predicción dual y aparecerá
+                                agrupada en la cola</div>
+                        </div>
+
+                        <div id="compare-fasta-preview-card" class="fasta-preview-card hidden" aria-live="polite">
+                            <div class="fasta-preview-header">
+                                <span class="fasta-preview-title">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" style="vertical-align:-2px" aria-hidden="true">
+                                        <polyline points="9 11 12 14 22 4" />
+                                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                                    </svg>
+                                    Previsualización FASTA · Proteína 2
+                                </span>
+                                <div class="fasta-preview-actions">
+                                    <span id="compare-fasta-preview-stats" class="fasta-stats"></span>
+                                    <button id="btn-download-compare-fasta" class="glass-btn small accent-btn"
+                                        type="button" onclick="downloadCompareFasta()" title="Descargar archivo .fasta">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" y1="15" x2="12" y2="3" />
+                                        </svg>
+                                        .fasta
+                                    </button>
+                                </div>
+                            </div>
+                            <pre id="compare-fasta-preview-content" class="fasta-preview-pre"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Presets ── -->
+                <div class="presets">
+                    <span class="presets-label">Proteínas de ejemplo:</span>
+                    <button id="btn-preset-ubiquitin" class="glass-btn small"
+                        onclick="loadPreset('ubiquitin')">Ubiquitin (76 aa)</button>
+                    <button id="btn-preset-calmodulin" class="glass-btn small"
+                        onclick="loadPreset('calmodulin')">Calmodulin (149 aa)</button>
+                    <button id="btn-preset-p53" class="glass-btn small" onclick="loadPreset('p53')">p53 (393
+                        aa)</button>
+                </div>
+
+                <button id="btn-submit" class="glass-btn primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        aria-hidden="true">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                    Predecir Estructura 3D
+                </button>
+            </div>
+
+            <!-- ── Cola de Trabajos ── -->
+            <div id="job-queue-section" class="job-queue-section hidden scroll-reveal" data-reveal-delay="180">
+                <div class="job-queue-header">
+                    <h3 class="job-queue-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" aria-hidden="true">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                        Cola de Procesos
+                    </h3>
+                    <span id="job-queue-count" class="job-queue-count">0 trabajos</span>
+                </div>
+                <div id="job-queue-list" class="job-queue-list">
+                    <!-- Job cards injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Vista 2: Cargando / Polling (POLLING)  -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="view-polling" class="view" aria-label="Estado del job en CESGA" aria-live="polite">
+            <div class="glass-card status-card">
+                <h2 id="job-status-title">Conectando al CESGA...</h2>
+                <p id="job-status-sub" class="subtext">Iniciando cola de recursos HPC</p>
+
+                <!-- QUEUE STEPPER -->
+                <div class="stepper-container" role="list" aria-label="Progreso del job">
+                    <div class="step" id="step-pending" role="listitem">
+                        <div class="step-icon">1</div>
+                        <div class="step-label">En Cola</div>
+                    </div>
+                    <div class="step-line" id="line-pending-running"></div>
+                    <div class="step" id="step-running" role="listitem">
+                        <div class="step-icon">2</div>
+                        <div class="step-label">AlphaFold2</div>
+                    </div>
+                    <div class="step-line" id="line-running-completed"></div>
+                    <div class="step" id="step-completed" role="listitem">
+                        <div class="step-icon">✓</div>
+                        <div class="step-label">Completado</div>
+                    </div>
+                </div>
+
+                <!-- 3D Atom Spinner -->
+                <div class="atom-spinner" aria-hidden="true">
+                    <div class="spinner-inner">
+                        <div class="spinner-line"></div>
+                        <div class="spinner-line"></div>
+                        <div class="spinner-line"></div>
+                        <div class="spinner-circle">&#9679;</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container" role="progressbar" aria-label="Progreso del cálculo">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+
+                <div class="logs-container">
+                    <pre id="job-logs">> Initializing job...</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- Vista 3: Resultados (RESULTS)           -->
+        <!-- ═══════════════════════════════════════ -->
+        <section id="view-results" class="view" aria-label="Resultados de la predicción">
+
+            <!-- Fila superior: Proteína + HPC -->
+            <div class="results-top-bar glass-card">
+                <div class="protein-id-block">
+                    <div class="protein-badge" id="res-source-badge">AlphaFold2</div>
+                    <div>
+                        <h2 id="res-protein-name">—</h2>
+                        <p class="subtext" id="res-protein-organism">—</p>
+                    </div>
+                </div>
+                <div class="top-stats">
+                    <div class="top-stat">
+                        <span class="top-stat-label" id="res-plddt-top-label">pLDDT global</span>
+                        <span class="top-stat-val" id="res-plddt-top">—</span>
+                    </div>
+                    <div class="top-stat">
+                        <span class="top-stat-label" id="res-pae-top-label">PAE medio</span>
+                        <span class="top-stat-val" id="res-pae-top">— Å</span>
+                    </div>
+                    <div class="top-stat">
+                        <span class="top-stat-label" id="res-length-top-label">Residuos</span>
+                        <span class="top-stat-val" id="res-length-top">—</span>
+                    </div>
+                    <div class="top-stat">
+                        <span class="top-stat-label" id="res-mw-top-label">Peso Mol.</span>
+                        <span class="top-stat-val" id="res-mw-top">— kDa</span>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div id="single-download-actions" class="top-actions-group">
+                        <button id="btn-download-json" class="glass-btn small accent-btn"
+                            onclick="downloadConfidenceJSON()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            JSON Confianza
+                        </button>
+                        <button id="btn-download-pdb" class="glass-btn small" onclick="downloadFile('pdb')">⬇
+                            PDB</button>
+                        <button id="btn-download-cif" class="glass-btn small" onclick="downloadFile('cif')">⬇
+                            mmCIF</button>
+                    </div>
+                    <button id="btn-download-compare-report" class="glass-btn small accent-btn hidden"
+                        onclick="downloadComparisonReport()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <path d="M12 18v-6" />
+                            <polyline points="9 15 12 18 15 15" />
+                        </svg>
+                        Informe comparativo
+                    </button>
+                    <button id="btn-new-pred" class="glass-btn small secondary" onclick="resetApp()">+ Nueva
+                        predicción</button>
+                </div>
+            </div>
+
+            <div id="single-results-layout">
+                <!-- Cuadrícula principal -->
+                <div class="results-grid">
+
+                    <!-- ── Columna izquierda: Visor 3D ── -->
+                    <div class="glass-card viewer-card">
+                        <div class="card-header">
+                            <h3>Modelo 3D — Mol*</h3>
+                            <div class="legend" aria-label="Escala de colores pLDDT">
+                                <span class="badge blue-dark" title="Muy Alta confianza (>90)">&#62;90</span>
+                                <span class="badge blue-light" title="Alta confianza (70–90)">70–90</span>
+                                <span class="badge yellow" title="Baja confianza (50–70)">50–70</span>
+                                <span class="badge orange" title="Muy baja confianza (<50)">&#60;50</span>
+                                <span class="legend-label">pLDDT</span>
+                            </div>
+                        </div>
+                        <div id="viewer-container" class="viewer-container" aria-label="Visor molecular 3D interactivo">
+                        </div>
+                    </div>
+
+                    <!-- ── Columna derecha: Métricas ── -->
+                    <div class="metrics-col">
+
+                        <!-- Confianza pLDDT -->
+                        <div class="glass-card metric-card">
+                            <h3 class="metric-title">Confianza pLDDT</h3>
+                            <div class="plddt-main">
+                                <div class="big-number" id="res-plddt">—</div>
+                                <div class="plddt-desc" id="res-plddt-label">—</div>
+                            </div>
+                            <!-- Histograma pLDDT -->
+                            <div class="histogram-container" aria-label="Distribución de confianza pLDDT">
+                                <div class="hist-bars" id="hist-bars"></div>
+                                <div class="hist-labels">
+                                    <span style="color:var(--plddt-vlow)">Muy baja</span>
+                                    <span style="color:var(--plddt-low)">Baja</span>
+                                    <span style="color:var(--plddt-high)">Alta</span>
+                                    <span style="color:var(--plddt-vhigh)">Muy alta</span>
+                                </div>
+                            </div>
+                            <!-- Gráfico pLDDT por residuo -->
+                            <div class="plddt-chart-section">
+                                <div class="metric-subtitle">pLDDT por residuo</div>
+                                <canvas id="plddt-canvas" class="plddt-canvas"
+                                    aria-label="Gráfico pLDDT por residuo"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Matriz PAE -->
+                        <div class="glass-card metric-card">
+                            <h3 class="metric-title">Matriz PAE</h3>
+                            <p class="subtext pae-desc">Error Alineado Predicho entre pares de residuos. Azul oscuro =
+                                alta
+                                confianza.</p>
+                            <canvas id="pae-canvas" class="pae-canvas"
+                                aria-label="Matriz de error alineado predicho (PAE)"></canvas>
+                            <div class="pae-legend">
+                                <span>0 Å (confiado)</span>
+                                <div class="pae-gradient-bar"></div>
+                                <span>≥30 Å (incierto)</span>
+                            </div>
+                        </div>
+
+                        <!-- Estructura secundaria -->
+                        <div class="glass-card metric-card">
+                            <h3 class="metric-title">Estructura Secundaria (predicha)</h3>
+                            <div class="ss-bars" id="ss-bars"></div>
+                        </div>
+
+                        <!-- Biología + Propiedades -->
+                        <div class="glass-card metric-card">
+                            <h3 class="metric-title">Análisis Biológico</h3>
+                            <div class="bio-grid" id="bio-grid"></div>
+                            <div id="alerts-section"></div>
+                        </div>
+
+                        <!-- HPC Accounting -->
+                        <div class="glass-card metric-card">
+                            <h3 class="metric-title">Recursos HPC (CESGA)</h3>
+                            <div class="hpc-stats" id="hpc-stats"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="comparison-results-layout" class="comparison-results-layout hidden">
+                <div class="comparison-viewers-grid">
+                    <div class="glass-card comparison-protein-card">
+                        <div class="comparison-protein-header">
+                            <div>
+                                <div class="comparison-protein-kicker">Proteína 1</div>
+                                <h3 id="compare-protein-one-title">—</h3>
+                            </div>
+                            <span id="compare-protein-one-score" class="comparison-score">—</span>
+                        </div>
+                        <div id="compare-viewer-one" class="viewer-container compare-viewer-container"
+                            aria-label="Visor 3D de la proteína 1"></div>
+                        <div id="compare-summary-one" class="compare-summary"></div>
+                    </div>
+
+                    <div class="glass-card comparison-protein-card">
+                        <div class="comparison-protein-header">
+                            <div>
+                                <div class="comparison-protein-kicker">Proteína 2</div>
+                                <h3 id="compare-protein-two-title">—</h3>
+                            </div>
+                            <span id="compare-protein-two-score" class="comparison-score">—</span>
+                        </div>
+                        <div id="compare-viewer-two" class="viewer-container compare-viewer-container"
+                            aria-label="Visor 3D de la proteína 2"></div>
+                        <div id="compare-summary-two" class="compare-summary"></div>
+                    </div>
+                </div>
+
+                <div class="comparison-analysis-grid">
+                    <div class="glass-card metric-card">
+                        <h3 class="metric-title">Resumen comparativo</h3>
+                        <div id="comparison-overview" class="comparison-overview"></div>
+                    </div>
+                    <div class="glass-card metric-card">
+                        <h3 class="metric-title">Diferencias clave</h3>
+                        <div id="comparison-delta-grid" class="comparison-delta-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs del job -->
+            <div class="glass-card logs-card">
+                <h3 class="metric-title">Logs del job</h3>
+                <pre id="result-logs" class="result-logs-pre">—</pre>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="site-footer scroll-reveal" data-reveal-delay="120" aria-label="Branding y colaboradores">
+        <div class="site-footer-inner">
+            <div class="site-footer-copy">
+                <span class="site-footer-kicker">Cierre de proyecto</span>
+                <h2>AminoFold3D</h2>
+                <p>IA, supercomputación y visualización 3D puestas al servicio del investigador.</p>
+            </div>
+
+            <div class="site-footer-brand-grid">
+                <figure class="site-footer-brand-card site-footer-brand-card--wide">
+                    <img src="assets/camelia.png" alt="Logo de Camelia">
+                </figure>
+
+                <figure class="site-footer-brand-card site-footer-brand-card--wide">
+                    <img src="assets/aminofold-brand.png" alt="Branding de AminoFold3D">
+                </figure>
+
+                <figure class="site-footer-brand-card">
+                    <img src="assets/cesga.png" alt="Logo del CESGA">
+                </figure>
+
+                <figure class="site-footer-brand-card">
+                    <img src="assets/cimus.png" alt="Logo del CIMUS">
+                </figure>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CHATBOT — Asistente IA AminoFold3D    -->
+    <!-- ═══════════════════════════════════════ -->
+
+    <!-- Floating trigger button -->
+    <button id="chat-fab" class="chat-fab" onclick="toggleChat()" aria-label="Abrir asistente IA"
+        title="Asistente IA — AminoFold3D">
+        <svg id="chat-fab-icon-open" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <svg id="chat-fab-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" style="display:none" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+        <span id="chat-fab-label">IA</span>
+    </button>
+
+    <!-- Chat Panel -->
+    <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Asistente IA AminoFold3D"
+        aria-modal="false">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <div class="chat-avatar" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="chat-header-title">Asistente AminoFold3D</div>
+                    <div class="chat-header-sub" id="chat-status-label">Powered by Gemini · Listo</div>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button class="chat-icon-btn" onclick="clearChat()" title="Limpiar conversación"
+                    aria-label="Limpiar chat">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                </button>
+                <button class="chat-icon-btn" onclick="toggleChat()" title="Cerrar" aria-label="Cerrar chat">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Mensajes del chat">
+            <!-- Welcome message injected by JS -->
+        </div>
+
+        <!-- Quick suggestions -->
+        <div id="chat-suggestions" class="chat-suggestions" aria-label="Sugerencias rápidas">
+            <button class="chat-chip" onclick="sendSuggestion(this)">¿Qué significan los colores del visor 3D?</button>
+            <button class="chat-chip" onclick="sendSuggestion(this)">Explícame el pLDDT de esta proteína</button>
+            <button class="chat-chip" onclick="sendSuggestion(this)">¿Para qué sirve la matriz PAE?</button>
+            <button class="chat-chip" onclick="sendSuggestion(this)">Análisis de la estructura secundaria</button>
+            <button class="chat-chip" onclick="sendSuggestion(this)">¿Es esta proteína un buen blanco
+                farmacológico?</button>
+            <button class="chat-chip" onclick="sendSuggestion(this)">Resume los resultados en términos simples</button>
+        </div>
+
+        <!-- Input bar -->
+        <div class="chat-input-bar">
+            <textarea id="chat-input" class="chat-textarea"
+                placeholder="Pregunta sobre la proteína, los resultados, visualizaciones..." rows="1"
+                aria-label="Escribe tu pregunta al asistente IA" onkeydown="onChatKeyDown(event)"
+                oninput="autoresizeChat(this)"></textarea>
+            <button id="chat-send-btn" class="chat-send-btn" onclick="sendChatMessage()" aria-label="Enviar mensaje"
+                title="Enviar (Enter)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
