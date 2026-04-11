@@ -27,9 +27,12 @@ VIDEO
 ## Estructura del proyecto
 
 .
-├── app.js
-├── index.html
-└── style.css
+├── app.js  
+
+├── index.html  
+
+└── style.css  
+
 
 ## Mantenedores
 
