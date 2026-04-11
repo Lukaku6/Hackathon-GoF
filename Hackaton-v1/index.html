@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioHack | AlphaFold Protein Structure Predictor</title>
+    <title>Protein3D | AlphaFold Protein Structure Predictor</title>
     <meta name="description"
         content="Predictor de estructuras proteicas powered by AlphaFold2 y CESGA HPC. Visualización 3D con Mol*, análisis de confianza pLDDT y matriz PAE.">
 
@@ -29,10 +29,12 @@
 <body>
     <div id="bg-glow-1" class="glow"></div>
     <div id="bg-glow-2" class="glow"></div>
+    <div id="protein-sky" class="protein-sky" aria-hidden="true"></div>
+    <div id="protein-capture-toast" class="protein-capture-toast hidden" aria-live="polite"></div>
 
     <header class="glass-header">
         <div class="header-inner">
-            <div class="logo">
+            <button class="logo logo-link" onclick="goHome()" aria-label="Ir a inicio Protein3D" title="Volver al inicio">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"
                     aria-hidden="true">
                     <circle cx="16" cy="16" r="14" stroke="url(#g1)" stroke-width="2" />
@@ -51,8 +53,8 @@
                         </linearGradient>
                     </defs>
                 </svg>
-                <h1><span class="gradient-text">Bio</span>Hack</h1>
-            </div>
+                <h1><span class="gradient-text">Protein</span>3D</h1>
+            </button>
             <p class="tagline">Predicción de estructura proteica · AlphaFold2 @ CESGA</p>
         </div>
     </header>
@@ -145,6 +147,29 @@
                     <pre id="fasta-preview-content" class="fasta-preview-pre"></pre>
                 </div>
 
+                <!-- ── Editor de aminoácidos ── -->
+                <div id="aa-editor-card" class="aa-editor-card hidden" aria-live="polite">
+                    <div class="aa-editor-header">
+                        <span class="aa-editor-title">Editor de aminoácidos</span>
+                        <span id="aa-chain-stats" class="aa-chain-stats">—</span>
+                    </div>
+                    <div id="aa-sequence-track" class="aa-sequence-track" aria-label="Cadena de aminoácidos editable"></div>
+                    <div id="aa-legend-card" class="aa-legend-card hidden">
+                        <div class="aa-legend-top">
+                            <div id="aa-legend-chip" class="aa-legend-chip">A</div>
+                            <div>
+                                <div id="aa-legend-name" class="aa-legend-name">Alanina</div>
+                                <div id="aa-legend-meta" class="aa-legend-meta">Posición 1 · ALA · No polar</div>
+                            </div>
+                        </div>
+                        <div class="aa-replace-row">
+                            <label for="aa-replace-select" class="aa-replace-label">Cambiar por:</label>
+                            <select id="aa-replace-select" class="glass-input aa-replace-select"></select>
+                            <button class="glass-btn small" onclick="applyResidueChange()">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ── Presets ── -->
                 <div class="presets">
                     <span class="presets-label">Proteínas de ejemplo:</span>
@@ -163,6 +188,14 @@
                     </svg>
                     Predecir Estructura 3D
                 </button>
+
+                <div class="jobs-queue">
+                    <div class="jobs-queue-header">
+                        <h3>Trabajos enviados</h3>
+                        <span class="subtext">Puedes lanzar varios en paralelo y visualizar cada uno cuando quieras.</span>
+                    </div>
+                    <div id="jobs-list" class="jobs-list" aria-live="polite"></div>
+                </div>
             </div>
         </section>
 
@@ -173,6 +206,9 @@
             <div class="glass-card status-card">
                 <h2 id="job-status-title">Conectando al CESGA...</h2>
                 <p id="job-status-sub" class="subtext">Iniciando cola de recursos HPC</p>
+                <div style="margin-top:.6rem;">
+                    <button class="glass-btn small secondary" onclick="backToJobs()">Volver a trabajos</button>
+                </div>
 
                 <!-- QUEUE STEPPER -->
                 <div class="stepper-container" role="list" aria-label="Progreso del job">
@@ -241,8 +277,7 @@
                     <button id="btn-download-cif" class="glass-btn small" onclick="downloadFile('cif')">⬇ mmCIF</button>
                     <button id="btn-download-confidence" class="glass-btn small" onclick="downloadConfidenceJson()">⬇ JSON confianza</button>
                     <button id="btn-download-logs" class="glass-btn small" onclick="downloadLogs()">⬇ Logs</button>
-                    <button id="btn-new-pred" class="glass-btn small secondary" onclick="resetApp()">+ Nueva
-                        predicción</button>
+                    <button id="btn-new-pred" class="glass-btn small secondary" onclick="backToJobs()">Ver trabajos</button>
                 </div>
             </div>
 
@@ -333,11 +368,11 @@
     </main>
 
     <!-- ═══════════════════════════════════════ -->
-    <!-- CHATBOT — Asistente IA BioHack        -->
+    <!-- CHATBOT — Asistente IA Protein3D        -->
     <!-- ═══════════════════════════════════════ -->
 
     <!-- Floating trigger button -->
-    <button id="chat-fab" class="chat-fab" onclick="toggleChat()" aria-label="Abrir asistente IA" title="Asistente IA — BioHack">
+    <button id="chat-fab" class="chat-fab" onclick="toggleChat()" aria-label="Abrir asistente IA" title="Asistente IA — Protein3D">
         <svg id="chat-fab-icon-open" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -348,7 +383,7 @@
     </button>
 
     <!-- Chat Panel -->
-    <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Asistente IA BioHack" aria-modal="false">
+    <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Asistente IA Protein3D" aria-modal="false">
         <!-- Header -->
         <div class="chat-header">
             <div class="chat-header-info">
@@ -358,7 +393,7 @@
                     </svg>
                 </div>
                 <div>
-                    <div class="chat-header-title">Asistente BioHack</div>
+                    <div class="chat-header-title">Asistente Protein3D</div>
                     <div class="chat-header-sub" id="chat-status-label">Powered by Grok · Listo</div>
                 </div>
             </div>

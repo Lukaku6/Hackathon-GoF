@@ -9,9 +9,11 @@ const API_BASE = 'https://api-mock-cesga.onrender.com';
 
 // ── Estado de la aplicación ──────────────────────
 let currentJobId = null;
-let pollInterval = null;
 let molstarPlugin = null;   // instancia PDBeMolstarPlugin
 let currentData = null;   // outputs completos del job
+let jobsPollInterval = null;
+let activePollingJobId = null;
+const jobsById = new Map();
 
 // ── Elementos DOM ────────────────────────────────
 const views = {
@@ -30,6 +32,25 @@ const autocompleteBox = document.getElementById('name-autocomplete');
 const fastaPreviewCard = document.getElementById('fasta-preview-card');
 const fastaPreviewPre = document.getElementById('fasta-preview-content');
 const fastaPreviewStats = document.getElementById('fasta-preview-stats');
+const jobsListEl = document.getElementById('jobs-list');
+const aaEditorCard = document.getElementById('aa-editor-card');
+const aaSequenceTrack = document.getElementById('aa-sequence-track');
+const aaChainStats = document.getElementById('aa-chain-stats');
+const aaLegendCard = document.getElementById('aa-legend-card');
+const aaLegendChip = document.getElementById('aa-legend-chip');
+const aaLegendName = document.getElementById('aa-legend-name');
+const aaLegendMeta = document.getElementById('aa-legend-meta');
+const aaReplaceSelect = document.getElementById('aa-replace-select');
+const proteinSkyEl = document.getElementById('protein-sky');
+const proteinCaptureToastEl = document.getElementById('protein-capture-toast');
+
+let selectedResidueIndex = null;
+let proteinSkyTimer = null;
+let proteinSpawnPool = [];
+let proteinCaptureToastTimer = null;
+
+const PROTEIN_SPAWN_LIMIT = 8;
+const PROTEIN_MAX_ON_SCREEN = 2;
 
 // ════════════════════════════════════════════════
 // 1. Helpers de navegación
@@ -37,6 +58,12 @@ const fastaPreviewStats = document.getElementById('fasta-preview-stats');
 function showView(viewId) {
     Object.values(views).forEach(v => v.classList.remove('active'));
     views[viewId].classList.add('active');
+    updateProteinSkyVisibility(viewId === 'idle');
+}
+
+function goHome() {
+    backToJobs();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function appendLog(msg) {
@@ -94,6 +121,31 @@ const CATALOG_PROTEINS = [
     { id: 'amylase', name: 'Pancreatic alpha-amylase' },
     { id: 'serum_albumin', name: 'Human serum albumin' },
 ];
+
+const CATALOG_PDB_MAP = {
+    ubiquitin: '1UBQ',
+    histone_h4: '1AOI',
+    thioredoxin: '1ERU',
+    cytochrome_c: '1HRC',
+    insulin_human: '4MIF',
+    beta2_microglobulin: '1LDS',
+    rnase_a: '1FS3',
+    lysozyme: '1LYZ',
+    hemoglobin_alpha: '1A3N',
+    hemoglobin_beta: '1A3N',
+    lysozyme_human: '1LZ1',
+    calmodulin: '1CLL',
+    sod1: '1PU0',
+    myoglobin: '1MBN',
+    adenylate_kinase: '4AKE',
+    gfp: '1GFL',
+    chymotrypsin: '1CHY',
+    pcna: '1AXC',
+    p53: '2OCJ',
+    egfr_kinase: '1IVO',
+    amylase: '1BVN',
+    serum_albumin: '1AO6',
+};
 
 const _catalogLookup = new Map();
 CATALOG_PROTEINS.forEach(p => {
@@ -210,6 +262,130 @@ function resolveCatalogProteinId(rawValue) {
     return _catalogLookup.get(normalizeProteinKey(rawValue)) ?? null;
 }
 
+const AMINO_ACID_INFO = {
+    A: { name: 'Alanina', three: 'ALA', type: 'No polar', mass: 71.08 },
+    R: { name: 'Arginina', three: 'ARG', type: 'Básico (+)', mass: 156.19 },
+    N: { name: 'Asparagina', three: 'ASN', type: 'Polar', mass: 114.10 },
+    D: { name: 'Aspartato', three: 'ASP', type: 'Ácido (-)', mass: 115.09 },
+    C: { name: 'Cisteína', three: 'CYS', type: 'Polar azufrada', mass: 103.15 },
+    Q: { name: 'Glutamina', three: 'GLN', type: 'Polar', mass: 128.13 },
+    E: { name: 'Glutamato', three: 'GLU', type: 'Ácido (-)', mass: 129.12 },
+    G: { name: 'Glicina', three: 'GLY', type: 'No polar', mass: 57.05 },
+    H: { name: 'Histidina', three: 'HIS', type: 'Básico (+)', mass: 137.14 },
+    I: { name: 'Isoleucina', three: 'ILE', type: 'No polar', mass: 113.16 },
+    L: { name: 'Leucina', three: 'LEU', type: 'No polar', mass: 113.16 },
+    K: { name: 'Lisina', three: 'LYS', type: 'Básico (+)', mass: 128.17 },
+    M: { name: 'Metionina', three: 'MET', type: 'No polar azufrada', mass: 131.19 },
+    F: { name: 'Fenilalanina', three: 'PHE', type: 'Aromático', mass: 147.18 },
+    P: { name: 'Prolina', three: 'PRO', type: 'No polar', mass: 97.12 },
+    S: { name: 'Serina', three: 'SER', type: 'Polar', mass: 87.08 },
+    T: { name: 'Treonina', three: 'THR', type: 'Polar', mass: 101.11 },
+    W: { name: 'Triptófano', three: 'TRP', type: 'Aromático', mass: 186.21 },
+    Y: { name: 'Tirosina', three: 'TYR', type: 'Aromático polar', mass: 163.18 },
+    V: { name: 'Valina', three: 'VAL', type: 'No polar', mass: 99.13 },
+};
+
+const AMINO_ACID_CODES = Object.keys(AMINO_ACID_INFO);
+
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+    }
+    return a;
+}
+
+function initProteinSpawnPool() {
+    if (proteinSpawnPool.length) return;
+    proteinSpawnPool = shuffleArray(CATALOG_PROTEINS)
+        .slice(0, PROTEIN_SPAWN_LIMIT)
+        .map(p => ({ ...p }));
+}
+
+function scheduleNextProteinSpawn() {
+    if (!proteinSkyEl || !views.idle.classList.contains('active')) return;
+    if (!proteinSpawnPool.length) return;
+    const delay = 2600 + Math.floor(Math.random() * 2600);
+    proteinSkyTimer = setTimeout(() => {
+        if (proteinSkyEl.childElementCount < PROTEIN_MAX_ON_SCREEN) {
+            spawnProteinFlyer();
+        }
+        scheduleNextProteinSpawn();
+    }, delay);
+}
+
+function updateProteinSkyVisibility(visible) {
+    if (!proteinSkyEl) return;
+    if (!visible) {
+        if (proteinSkyTimer) {
+            clearTimeout(proteinSkyTimer);
+            proteinSkyTimer = null;
+        }
+        proteinSkyEl.innerHTML = '';
+        return;
+    }
+    initProteinSpawnPool();
+    if (!proteinSkyTimer && proteinSpawnPool.length > 0) {
+        scheduleNextProteinSpawn();
+    }
+}
+
+function spawnProteinFlyer() {
+    if (!proteinSkyEl || !proteinSpawnPool.length) return;
+    const protein = proteinSpawnPool.shift();
+    if (!protein) return;
+
+    const el = document.createElement('button');
+    el.type = 'button';
+    const direction = Math.random() > 0.5 ? 'dir-lr' : 'dir-rl';
+    const topPct = 12 + Math.floor(Math.random() * 66);
+    const duration = 13 + Math.floor(Math.random() * 12);
+    el.className = `protein-flyer ${direction}`;
+    el.style.top = `${topPct}vh`;
+    el.style.setProperty('--fly-dur', `${duration}s`);
+    const pdbId = CATALOG_PDB_MAP[protein.id];
+    const thumbUrl = pdbId
+        ? `https://cdn.rcsb.org/images/structures/${pdbId.toLowerCase()}_assembly-1.jpeg`
+        : '';
+    el.innerHTML = `
+        ${thumbUrl ? `<img class="protein-flyer-img" src="${thumbUrl}" alt="${protein.name}" loading="lazy">` : ''}
+    `;
+    el.title = protein.name;
+    const imgEl = el.querySelector('.protein-flyer-img');
+    if (imgEl) {
+        imgEl.onerror = () => {
+            imgEl.style.display = 'none';
+        };
+    }
+    el.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (el.classList.contains('captured')) return;
+        el.classList.add('captured');
+        showProteinCapturePopup(protein.name);
+        try {
+            await loadPreset(protein.id);
+        } finally {
+            setTimeout(() => el.remove(), 560);
+        }
+    };
+    el.addEventListener('animationend', () => el.remove());
+    proteinSkyEl.appendChild(el);
+}
+
+function showProteinCapturePopup(name) {
+    if (!proteinCaptureToastEl) return;
+    proteinCaptureToastEl.textContent = `Capturada: ${name}`;
+    proteinCaptureToastEl.classList.remove('hidden');
+    if (proteinCaptureToastTimer) clearTimeout(proteinCaptureToastTimer);
+    proteinCaptureToastTimer = setTimeout(() => {
+        proteinCaptureToastEl.classList.add('hidden');
+    }, 2200);
+}
+
 /** Writes/updates the >header line of the current FASTA with `name`. */
 function syncNameToFasta(name, forceEmpty = false) {
     const slug = name.trim().toLowerCase().replace(/\s+/g, '_');
@@ -246,21 +422,140 @@ function updateFastaPreview() {
     const raw = fastaInput.value.trim();
     if (!raw || !raw.startsWith('>')) {
         fastaPreviewCard.classList.add('hidden');
+        renderAminoAcidEditor('');
         return;
     }
     // Parse
     const lines = raw.split('\n');
     const header = lines[0];  // >name
     const seqRaw = lines.slice(1).join('').replace(/\s/g, '').toUpperCase();
-    if (!seqRaw) { fastaPreviewCard.classList.add('hidden'); return; }
+    if (!seqRaw) {
+        fastaPreviewCard.classList.add('hidden');
+        renderAminoAcidEditor('');
+        return;
+    }
 
     // Format: 60 chars per line
     const wrapped = seqRaw.match(/.{1,60}/g) || [];
     const formatted = header + '\n' + wrapped.join('\n');
 
     fastaPreviewPre.textContent = formatted;
-    fastaPreviewStats.textContent = `${seqRaw.length} residuos · ${Math.round(seqRaw.length * 110 / 1000)} kDa est.`;
+    const seqStats = computeSequenceStats(seqRaw);
+    fastaPreviewStats.textContent = `${seqStats.length} residuos · ${seqStats.mw_kda.toFixed(2)} kDa · Aromáticos ${seqStats.aromatic}`;
     fastaPreviewCard.classList.remove('hidden');
+    renderAminoAcidEditor(seqRaw);
+}
+
+function getCurrentFastaSequence() {
+    const raw = fastaInput.value.trim();
+    if (!raw.startsWith('>')) return '';
+    return raw.split('\n').slice(1).join('').replace(/\s/g, '').toUpperCase();
+}
+
+function setCurrentFastaSequence(newSequence) {
+    const raw = fastaInput.value.trim();
+    if (!raw.startsWith('>')) return;
+    const header = raw.split('\n')[0];
+    const wrapped = String(newSequence).match(/.{1,60}/g) || [];
+    fastaInput.value = `${header}\n${wrapped.join('\n')}`;
+}
+
+function computeSequenceStats(sequence) {
+    const seq = String(sequence || '');
+    const length = seq.length;
+    let mwDa = 18.015;
+    let aromatic = 0;
+    let basic = 0;
+    let acidic = 0;
+    for (const aa of seq) {
+        const info = AMINO_ACID_INFO[aa];
+        mwDa += info ? info.mass : 110.0;
+        if (aa === 'F' || aa === 'W' || aa === 'Y') aromatic += 1;
+        if (aa === 'K' || aa === 'R' || aa === 'H') basic += 1;
+        if (aa === 'D' || aa === 'E') acidic += 1;
+    }
+    return {
+        length,
+        mw_kda: mwDa / 1000,
+        aromatic,
+        basic,
+        acidic,
+    };
+}
+
+function renderAminoAcidEditor(sequence) {
+    const seq = String(sequence || '').toUpperCase();
+    if (!seq || !aaEditorCard || !aaSequenceTrack) {
+        aaEditorCard?.classList.add('hidden');
+        aaSequenceTrack && (aaSequenceTrack.innerHTML = '');
+        aaLegendCard?.classList.add('hidden');
+        selectedResidueIndex = null;
+        return;
+    }
+
+    aaEditorCard.classList.remove('hidden');
+    aaSequenceTrack.innerHTML = '';
+
+    const stats = computeSequenceStats(seq);
+    aaChainStats.textContent = `${stats.length} aa · ${stats.mw_kda.toFixed(2)} kDa · Arom ${stats.aromatic} · +${stats.basic}/-${stats.acidic}`;
+
+    for (let i = 0; i < seq.length; i += 1) {
+        const aa = seq[i];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'aa-token';
+        if (i === selectedResidueIndex) btn.classList.add('selected');
+        btn.textContent = aa;
+        btn.title = `Posición ${i + 1}: ${aa}`;
+        btn.onclick = () => selectResidue(i);
+        aaSequenceTrack.appendChild(btn);
+    }
+
+    if (selectedResidueIndex == null || selectedResidueIndex >= seq.length) {
+        selectedResidueIndex = 0;
+    }
+    renderResidueLegend(seq, selectedResidueIndex);
+}
+
+function selectResidue(index) {
+    selectedResidueIndex = index;
+    renderAminoAcidEditor(getCurrentFastaSequence());
+}
+
+function renderResidueLegend(sequence, index) {
+    const aa = sequence[index];
+    const info = AMINO_ACID_INFO[aa];
+    if (!aa || !info) {
+        aaLegendCard.classList.add('hidden');
+        return;
+    }
+    aaLegendCard.classList.remove('hidden');
+    aaLegendChip.textContent = aa;
+    aaLegendName.textContent = info.name;
+    aaLegendMeta.textContent = `Posición ${index + 1} · ${info.three} · ${info.type}`;
+
+    const previous = aaReplaceSelect.value;
+    aaReplaceSelect.innerHTML = '';
+    AMINO_ACID_CODES.forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        const i = AMINO_ACID_INFO[code];
+        opt.textContent = `${code} — ${i.name}`;
+        aaReplaceSelect.appendChild(opt);
+    });
+    aaReplaceSelect.value = previous && AMINO_ACID_INFO[previous] ? previous : aa;
+}
+
+function applyResidueChange() {
+    const seq = getCurrentFastaSequence();
+    if (!seq || selectedResidueIndex == null || selectedResidueIndex >= seq.length) return;
+    const replacement = aaReplaceSelect.value;
+    if (!AMINO_ACID_INFO[replacement]) return;
+
+    const chars = seq.split('');
+    chars[selectedResidueIndex] = replacement;
+    setCurrentFastaSequence(chars.join(''));
+    updateFastaPreview();
 }
 
 // ════════════════════════════════════════════════
@@ -330,76 +625,211 @@ btnSubmit.addEventListener('click', async () => {
         }
 
         const data = await res.json();
-        currentJobId = data.job_id;
-
-        startPolling();
+        const jobId = data.job_id;
+        const proteinLabel = inferProteinDisplayName(sequence, nameVal);
+        upsertJob({
+            job_id: jobId,
+            protein_name: proteinLabel,
+            status: 'PENDING',
+            logs: [
+                `> Job ${jobId} enviado a CESGA Slurm`,
+                '> Esperando recursos GPU...'
+            ],
+        });
+        ensureJobsPolling();
+        renderJobsList();
     } catch (e) {
         alert('Error al conectar con la API CESGA:\n' + e.message);
+    } finally {
         resetSubmitBtn();
     }
 });
 
 // ════════════════════════════════════════════════
-// 4. Polling — GET /jobs/{id}/status  cada 3 s
+// 4. Cola de trabajos y polling en background
 // ════════════════════════════════════════════════
-function startPolling() {
-    showView('polling');
-    updateStepper('PENDING');
-    logsEl.textContent = '';
-    appendLog('> Job ' + currentJobId + ' enviado a CESGA Slurm');
-    appendLog('> Esperando recursos GPU...');
+const TERMINAL_STATES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
 
-    statusTitle.textContent = 'En Cola del CESGA';
-    statusSub.textContent = 'Esperando recursos GPU libres...';
-
-    pollInterval = setInterval(pollStatus, 3000);
+function inferProteinDisplayName(sequence, fallbackName = '') {
+    const cleaned = String(fallbackName || '').trim();
+    if (cleaned) return cleaned;
+    if (String(sequence).startsWith('>')) {
+        const header = sequence.split('\n')[0].slice(1).trim();
+        if (header) return header;
+    }
+    return 'proteina_sintetica';
 }
 
-async function pollStatus() {
-    try {
-        const res = await fetch(`${API_BASE}/jobs/${currentJobId}/status`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+function upsertJob(payload) {
+    const existing = jobsById.get(payload.job_id) ?? {};
+    const merged = {
+        job_id: payload.job_id,
+        protein_name: payload.protein_name ?? existing.protein_name ?? payload.job_id,
+        status: payload.status ?? existing.status ?? 'PENDING',
+        outputs: payload.outputs ?? existing.outputs ?? null,
+        logs: payload.logs ?? existing.logs ?? [],
+        error_message: payload.error_message ?? existing.error_message ?? null,
+        openWhenReady: payload.openWhenReady ?? existing.openWhenReady ?? false,
+        loadingOutputs: payload.loadingOutputs ?? existing.loadingOutputs ?? false,
+        created_at: existing.created_at ?? Date.now(),
+    };
+    jobsById.set(payload.job_id, merged);
+    return merged;
+}
 
-        appendLog(`> [${new Date().toLocaleTimeString()}] Estado: ${data.status}`);
+function appendJobLog(job, msg) {
+    const logs = Array.isArray(job.logs) ? job.logs : [];
+    logs.push(msg);
+    while (logs.length > 120) logs.shift();
+    job.logs = logs;
+}
 
-        switch (data.status) {
-            case 'PENDING':
-                updateStepper('PENDING');
-                statusTitle.textContent = 'En Cola del CESGA';
-                statusSub.textContent = 'Esperando recursos GPU libres...';
-                break;
+function displayStatus(status) {
+    if (status === 'COMPLETED') return 'READY';
+    return status ?? 'PENDING';
+}
 
-            case 'RUNNING':
-                updateStepper('RUNNING');
-                statusTitle.textContent = 'Ejecutando AlphaFold2';
-                statusSub.textContent = 'Generando MSA e inferencia neuronal...';
-                break;
+function statusClass(status) {
+    if (status === 'COMPLETED') return 'ready';
+    if (status === 'RUNNING') return 'running';
+    if (status === 'FAILED' || status === 'CANCELLED') return 'failed';
+    return 'pending';
+}
 
-            case 'COMPLETED':
-                updateStepper('COMPLETED');
-                clearInterval(pollInterval);
-                appendLog('> Job COMPLETADO — descargando resultados...');
-                fetchResults();
-                break;
-
-            case 'FAILED':
-                updateStepper('FAILED');
-                clearInterval(pollInterval);
-                appendLog('> [ERROR] El job falló en CESGA.');
-                statusTitle.textContent = 'Error en el cálculo';
-                statusSub.textContent = data.error_message ?? 'Error desconocido';
-                progressBar.style.animation = 'none';
-                progressBar.style.background = '#ff007b';
-                resetSubmitBtn();
-                break;
-
-            default:
-                appendLog(`> Estado desconocido: ${data.status}`);
-        }
-    } catch (e) {
-        appendLog(`> [WARN] Error de red durante polling: ${e.message}`);
+function renderJobsList() {
+    if (!jobsListEl) return;
+    const jobs = [...jobsById.values()].sort((a, b) => b.created_at - a.created_at);
+    if (!jobs.length) {
+        jobsListEl.innerHTML = '<div class="jobs-empty">Aún no hay trabajos enviados.</div>';
+        return;
     }
+    jobsListEl.innerHTML = '';
+    jobs.forEach(job => {
+        const item = document.createElement('div');
+        item.className = 'job-item';
+
+        const canVisualize = job.status === 'COMPLETED' || job.status === 'RUNNING' || job.status === 'PENDING';
+        item.innerHTML = `
+            <div class="job-main">
+                <div class="job-name">${job.protein_name || job.job_id}</div>
+                <div class="job-id">${job.job_id}</div>
+            </div>
+            <div class="job-actions">
+                <span class="job-status ${statusClass(job.status)}">${displayStatus(job.status)}</span>
+                <button class="glass-btn small ${canVisualize ? '' : 'secondary'}" ${canVisualize ? '' : 'disabled'} data-job-view="${job.job_id}">
+                    Visualizar
+                </button>
+            </div>
+        `;
+        const btn = item.querySelector('button[data-job-view]');
+        if (btn) btn.addEventListener('click', () => visualizeJob(job.job_id));
+        jobsListEl.appendChild(item);
+    });
+}
+
+renderJobsList();
+renderAminoAcidEditor('');
+updateProteinSkyVisibility(views.idle.classList.contains('active'));
+
+function ensureJobsPolling() {
+    if (jobsPollInterval) return;
+    jobsPollInterval = setInterval(pollJobsStatus, 3000);
+}
+
+async function pollJobsStatus() {
+    const candidates = [...jobsById.values()].filter(j => !TERMINAL_STATES.has(j.status));
+    if (!candidates.length) return;
+
+    await Promise.all(candidates.map(async (job) => {
+        try {
+            const res = await fetch(`${API_BASE}/jobs/${job.job_id}/status`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const prev = job.status;
+            job.status = data.status ?? prev;
+            if (data.error_message) job.error_message = data.error_message;
+
+            if (job.status !== prev) {
+                appendJobLog(job, `> [${new Date().toLocaleTimeString()}] Estado: ${job.status}`);
+                if (job.status === 'FAILED') {
+                    appendJobLog(job, `> [ERROR] ${job.error_message ?? 'Error desconocido'}`);
+                }
+                if (job.status === 'COMPLETED') {
+                    appendJobLog(job, '> Job COMPLETADO — listo para visualizar');
+                }
+            }
+
+            if (activePollingJobId === job.job_id) {
+                renderPollingForJob(job);
+            }
+
+            if (job.status === 'COMPLETED' && job.openWhenReady && !job.outputs) {
+                await loadJobOutputs(job.job_id, true);
+            }
+        } catch (e) {
+            appendJobLog(job, `> [WARN] Error de red durante polling: ${e.message}`);
+            if (activePollingJobId === job.job_id) renderPollingForJob(job);
+        }
+    }));
+
+    renderJobsList();
+}
+
+function renderPollingForJob(job) {
+    showView('polling');
+    statusTitle.textContent = `Trabajo: ${job.protein_name ?? job.job_id}`;
+    logsEl.textContent = (job.logs && job.logs.length) ? job.logs.join('\n') : '> Esperando estado del job...';
+    logsEl.scrollTop = logsEl.scrollHeight;
+
+    if (job.status === 'PENDING') {
+        updateStepper('PENDING');
+        statusSub.textContent = 'Esperando recursos GPU libres...';
+        progressBar.style.animation = '';
+        progressBar.style.background = '';
+    } else if (job.status === 'RUNNING') {
+        updateStepper('RUNNING');
+        statusSub.textContent = 'Generando MSA e inferencia neuronal...';
+        progressBar.style.animation = '';
+        progressBar.style.background = '';
+    } else if (job.status === 'COMPLETED') {
+        updateStepper('COMPLETED');
+        statusSub.textContent = 'Descargando resultados...';
+        progressBar.style.animation = '';
+        progressBar.style.background = '';
+    } else {
+        updateStepper('FAILED');
+        statusSub.textContent = job.error_message ?? 'Error en el cálculo';
+        progressBar.style.animation = 'none';
+        progressBar.style.background = '#ff007b';
+    }
+}
+
+function backToJobs() {
+    activePollingJobId = null;
+    showView('idle');
+    renderJobsList();
+}
+
+async function visualizeJob(jobId) {
+    const job = jobsById.get(jobId);
+    if (!job) return;
+
+    if (job.outputs) {
+        openJobResults(job);
+        return;
+    }
+    if (job.status === 'COMPLETED') {
+        await loadJobOutputs(jobId, true);
+        return;
+    }
+    if (job.status === 'FAILED' || job.status === 'CANCELLED') {
+        alert('Este trabajo no está disponible para visualizar porque finalizó con error.');
+        return;
+    }
+
+    job.openWhenReady = true;
+    activePollingJobId = jobId;
+    renderPollingForJob(job);
 }
 
 // Stepper
@@ -443,26 +873,38 @@ function updateStepper(state) {
 // ════════════════════════════════════════════════
 // 5. Fetch de resultados — /outputs
 // ════════════════════════════════════════════════
-async function fetchResults() {
-    statusTitle.textContent = 'Descargando resultados...';
-
+async function loadJobOutputs(jobId, openWhenReady = false) {
+    const job = jobsById.get(jobId);
+    if (!job || job.loadingOutputs) return;
+    job.loadingOutputs = true;
     try {
-        const outRes = await fetch(`${API_BASE}/jobs/${currentJobId}/outputs`);
+        const outRes = await fetch(`${API_BASE}/jobs/${jobId}/outputs`);
 
         if (!outRes.ok) throw new Error(`outputs HTTP ${outRes.status}`);
 
         const outputs = await outRes.json();
+        job.outputs = outputs;
+        job.status = 'COMPLETED';
+        job.openWhenReady = false;
 
-        currentData = { outputs };
-
-        renderDashboard(outputs);
-        showView('results');
-
+        if (openWhenReady || activePollingJobId === jobId) {
+            openJobResults(job);
+        }
     } catch (e) {
         alert('Error al cargar los resultados:\n' + e.message);
+        appendJobLog(job, `> [ERROR] No se pudieron cargar outputs: ${e.message}`);
     } finally {
-        resetSubmitBtn();
+        job.loadingOutputs = false;
+        renderJobsList();
     }
+}
+
+function openJobResults(job) {
+    currentJobId = job.job_id;
+    currentData = { outputs: job.outputs };
+    activePollingJobId = null;
+    renderDashboard(job.outputs);
+    showView('results');
 }
 
 // ════════════════════════════════════════════════
@@ -805,7 +1247,7 @@ function downloadFile(type) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `biohack_${currentJobId ?? 'structure'}${ext}`;
+    a.download = `protein3d_${currentJobId ?? 'structure'}${ext}`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -821,7 +1263,7 @@ function downloadConfidenceJson() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `biohack_${currentJobId ?? 'structure'}_confidence.json`;
+    a.download = `protein3d_${currentJobId ?? 'structure'}_confidence.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -834,7 +1276,7 @@ function downloadLogs() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `biohack_${currentJobId ?? 'structure'}_logs.txt`;
+    a.download = `protein3d_${currentJobId ?? 'structure'}_logs.txt`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -843,7 +1285,6 @@ function downloadLogs() {
 // 10. Reset
 // ════════════════════════════════════════════════
 function resetApp() {
-    clearInterval(pollInterval);
     if (molstarPlugin) {
         try { molstarPlugin.clear(); } catch (_) { }
         molstarPlugin = null;
@@ -854,16 +1295,16 @@ function resetApp() {
     }
     currentJobId = null;
     currentData = null;
-    pollInterval = null;
     fastaInput.value = '';
     proteinNameInput.value = '';
     fastaPreviewCard.classList.add('hidden');
     fastaPreviewPre.textContent = '';
+    renderAminoAcidEditor('');
     logsEl.textContent = '> Initializing job...';
     progressBar.style.animation = '';
     progressBar.style.background = '';
     resetSubmitBtn();
-    showView('idle');
+    backToJobs();
 }
 
 // ════════════════════════════════════════════════
@@ -965,7 +1406,7 @@ let chatIsOpen = false;
 let chatTypingEl = null;
 
 // ── Mensaje de bienvenida ────────────────────────
-const WELCOME_MSG = `¡Hola! Soy el asistente IA de BioHack 🧬
+const WELCOME_MSG = `¡Hola! Soy el asistente IA de Protein3D 🧬
 
 Puedo ayudarte a:
 • Interpretar los resultados de tus predicciones (pLDDT y PAE)
@@ -1007,7 +1448,7 @@ Job ID: ${currentJobId ?? '—'}
 
 // ── Prompt de sistema ────────────────────────────
 function buildSystemPrompt() {
-    return `Eres un Asistente Experto en Bioinformática de BioHack, especializado en el análisis estructural de proteínas mediante AlphaFold2 y computación de alto rendimiento (HPC) en el supercomputador CESGA. Tu objetivo es proporcionar análisis rigurosos, precisos y de alto nivel científico a investigadores.
+    return `Eres un Asistente Experto en Bioinformática de Protein3D, especializado en el análisis estructural de proteínas mediante AlphaFold2 y computación de alto rendimiento (HPC) en el supercomputador CESGA. Tu objetivo es proporcionar análisis rigurosos, precisos y de alto nivel científico a investigadores.
 
 REGLAS DE COMPORTAMIENTO:
 1. Tono: Profesional, científico, analítico y preciso, pero capaz de explicar conceptos complejos de forma didáctica.
