@@ -26,10 +26,11 @@ VIDEO
 
 ## Estructura del proyecto
 
-.  
-├── app.js  
-├── index.html  
-└── style.css  
+
+`Hackaton-v1/`   
+├── `app.js`   
+├── `index.html`   
+└── `style.css`    
 
 
 ## Mantenedores
