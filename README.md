@@ -1,4 +1,4 @@
-# **AminoFold3D**
+<img width="475" height="720" alt="imagen" src="https://github.com/user-attachments/assets/05283b42-cdd1-4e5c-b83a-7e1fb6180414" /># **AminoFold3D**
 
 ##### Proyecto reto CamelIA Impacthon 2026
 
@@ -22,38 +22,6 @@ VIDEO
 * **Descarga de ficheros de información variada** --> Se le permite al investigador descargar documentos del tipo .pdb, .mmcif, JSON de confianza y logs completos.
 
 ## Arquitectura
+<img width="475" height="720" alt="imagen" src="https://github.com/user-attachments/assets/527449bb-dfb9-4161-9473-82b231cc4bcc" />
 
-┌──────────────────────────────────────────────┐
-│            Investigador (navegador)          │
-│                                              │
-│           Pega secuencia FASTA               │
-└──────────────────────────────────────────────┘
-                      │   
-                      ▼
-┌──────────────────────────────────────────────┐
-│         Frontend web (React / SPA)           │
-│                                              │
-│              POST /jobs/submit               │
-└──────────────────────────────────────────────┘
-                      │   
-                      ▼
-┌──────────────────────────────────────────────┐
-│   Backend API (Simulación AlphaFold + CESGA) │
-│                                              │
-│   Procesamiento y generación de resultados   │
-└──────────────────────────────────────────────┘
-                      │   
-                      ▼
-┌──────────────────────────────────────────────┐
-│                 Outputs                      │
-│                                              │
-│   PDB · mmCIF · pLDDT.json · PAE.json        │
-└──────────────────────────────────────────────┘
-                      │   
-                      ▼
-┌──────────────────────────────────────────────┐
-│        Visualización en Frontend             │
-│                                              │
-│   Render estructural + métricas dinámicas    │
-└──────────────────────────────────────────────┘
 
