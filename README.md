@@ -1,4 +1,4 @@
-<img width="475" height="720" alt="imagen" src="https://github.com/user-attachments/assets/05283b42-cdd1-4e5c-b83a-7e1fb6180414" /># **AminoFold3D**
+#**AminoFold3D**
 
 ##### Proyecto reto CamelIA Impacthon 2026
 
