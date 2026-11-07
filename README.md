@@ -43,3 +43,10 @@ Lista de mantenedores actuales del proyecto AminoFold3D.
 | Marcos González Taracido   | marcos.gonzalez.taracido@rai.usc.es| Maintainer |
 | Mateo Díaz Pérez           | mateo.diaz.perez@rai.usc.es        | Maintainer |
 | Imanol Domínguez Neira     | imanol.dominguez@rai.usc.es        | Maintainer |
+
+
+
+
+El enlace real de acceso al proyecto es el siguiente: https://lukaku6.github.io/Hackathon-GoF/Hackaton-v1/
+
+
